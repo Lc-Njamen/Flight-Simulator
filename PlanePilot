@@ -1,0 +1,237 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+//  /!\     /!\   /!\    /!\  /!\    /!\UNITÉ EN SI/!\   /!\     /!\      /!\    /!\    /!\
+// On suppose la vitesse du vent nulle
+//Aéronef supposé indéformable
+//Caractéristique Boeing C-17
+
+public class Planepilot : MonoBehaviour
+{
+    [SerializeField]
+    private GameObject MainCamera;
+    [SerializeField]
+    private GameObject RepereLoc;
+
+    public float OffsetX;
+    public float OffsetY;
+    private Vector3 zero = Vector3.zero;
+    // Start is called before the first frame update
+
+    public Rigidbody rb;
+    public float Portance;
+    public float PuissanceMaxMoteur = 122420.0f;
+    public float PuissanceUtilMoteur;
+    public float Traction; //Force qui pousse en avant l avion
+    public float throttle; //de 0 a 10 utilisation de la puissance des moteurs
+    public float Trainee;
+    public float MassVolAir = 1.225f; // Varie selon l altitude
+    public float SurfaceAlaire = 353f; // Surface des ailes en m2
+    public float IncidenceAiles; // angle de l aile par rapport au vent relatif
+    public float RelativeSpeed;
+    public float turn;
+    public float pitch = 0;
+    public float LimitSpeed = 258.3f; //930 km/h vitesse du son
+    static float squaresize = 2.0f;
+    public float CoeffPortAiles =0.3f;
+    public float CoeffTrainee = 0.013f;
+    public Vector3 speedV3;
+    public float Speed;
+
+
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+        rb.mass = 122000f;
+        
+        //rb.angularDrag = 2.0f;
+      
+    }
+
+    // Update is called once per frame
+    void FixedUpdate()
+    {
+
+        Speed = rb.velocity.magnitude;
+        IncidenceAiles = 360.0f-Mathf.Abs(transform.rotation.eulerAngles.x) ;
+        speedV3 = rb.velocity ;
+        Vector3 CamInterPos;
+        Vector3 CamPos = MainCamera.transform.position;
+        Vector3 RelativeSpeedV3 = Vector3.Project(rb.velocity, transform.forward);
+        CoeffPortAiles = Mathf.Clamp(CoeffPortAiles, 0, 2);
+
+        if (IncidenceAiles>0 || IncidenceAiles <= 25)
+        {
+            CoeffPortAiles = 0.05f * IncidenceAiles + 0.15f;
+        } //Portance
+
+        if (IncidenceAiles == 360 )
+        {
+            IncidenceAiles = 0;
+            CoeffPortAiles = 0.015f;
+            print("Avion à plat"+IncidenceAiles);
+        }//Portance
+
+        if (IncidenceAiles > 25 && IncidenceAiles<30)
+        {
+            float x = IncidenceAiles;
+            float X = x - 25;
+            x= -(Mathf.Pow(X,2)*0.02857f) +  x/25 + (2/25);
+            CoeffPortAiles = x;
+            print("25 ! "+CoeffPortAiles);
+        }//Portance
+
+
+        if (IncidenceAiles>=30)
+        {
+            CoeffPortAiles = 0;
+        }//Portance
+
+        
+
+        if (IncidenceAiles <= 3)
+        {
+            float x = IncidenceAiles;
+            float X = x;
+            x = (Mathf.Pow(X, 2) * 0.01f) + 0.015f + (x/800);
+            CoeffTrainee = x;
+        }//Trainée
+
+        if(IncidenceAiles>=10 && IncidenceAiles <= 15)
+        {
+            float x = IncidenceAiles;
+            float X = x - 3;
+            print(4 / 10000);
+            x = (Mathf.Pow(X, 2) * 0.0004f);
+            CoeffTrainee = x;
+           
+        }//Trainée
+
+        if(IncidenceAiles>3 && IncidenceAiles < 10)//Trainée   
+        {
+            float x = IncidenceAiles;
+            float X = x - 3;
+            x = (Mathf.Pow(X, 2) * 0.0001f)+0.012f;
+            CoeffTrainee = x;
+        } //Trainée
+
+        float speed = speedV3.magnitude ; // 1m/s = 3.6 km / h
+        speedV3 = rb.velocity;
+
+        Debug.DrawRay(transform.position, speedV3 / 50.0f, Color.blue);         // Debug/trace une ligne bleue pour représenter speedV3 //
+        Debug.DrawRay(transform.position, RelativeSpeedV3 / 50.0f, Color.red);
+     
+        if (RelativeSpeedV3.magnitude > LimitSpeed) //Limit RelativSpeed
+        {
+            RelativeSpeedV3 = Vector3.ClampMagnitude(RelativeSpeedV3, LimitSpeed);
+        }
+        RelativeSpeed = RelativeSpeedV3.magnitude;
+
+        
+        
+
+        
+        if (rb.velocity.magnitude > LimitSpeed) //Limit RelativSpeed
+        {
+            rb.velocity = Vector3.ClampMagnitude(rb.velocity, LimitSpeed);
+        }
+        float cursorPosZ = transform.position.z + 15.0f;
+        float cursorPosY = transform.position.y - 3.24f;
+        float cursorPosX = transform.position.x -4.0f;
+        Vector3 cursorPos = transform.position;
+        cursorPos.z = cursorPosZ;
+        cursorPos.y = cursorPosY;
+        cursorPos.x = cursorPosX;
+        if (RelativeSpeed>200)
+        {
+            this.DebugDrawColoredRectangle(cursorPos, squaresize, Color.white);
+
+        }
+
+        float SpeedSpeed = Speed * Speed;
+
+        turn = -Input.GetAxis("Horizontal") * 0.5f * Speed * Speed;
+        rb.AddTorque(transform.forward * turn);
+
+        pitch = Input.GetAxis("Vertical") * 0.5f * Speed*Speed;
+        rb.AddTorque(transform.right * pitch);
+
+        //Force de Portance // vers le haut
+
+        Portance = 0.5f * MassVolAir * CoeffPortAiles * SpeedSpeed * SurfaceAlaire; 
+        rb.AddForce(transform.up * Portance);
+
+        //Calcul de la traction
+
+        Traction = throttle * PuissanceUtilMoteur;
+
+        rb.AddForce(transform.forward * Traction);  // En avant
+
+        //Calcul de la trainée
+        Quaternion PlaneRot = transform.rotation;
+        PlaneRot.x = 0;
+        PlaneRot.z = 0;
+        RepereLoc.transform.position = transform.position;
+        RepereLoc.transform.rotation = PlaneRot;
+        Trainee = CoeffTrainee * 0.5f * MassVolAir * RelativeSpeed*RelativeSpeed * SurfaceAlaire;
+        Vector3 horizontalForward = RepereLoc.transform.forward;
+       
+        rb.AddForce(-horizontalForward*Trainee);
+
+        // throttle
+
+
+
+        if (Input.GetButton("throttle+"))
+            {
+                throttle = throttle + 2.0f*Time.deltaTime;
+            }
+                                                    //maitrise de l'accélération    manette des gazs 
+            if (Input.GetButton("throttle-"))
+            {
+                throttle = throttle - 2.0f * Time.deltaTime;
+            }
+        throttle = Mathf.Clamp(throttle, 0.0f, 100.0f);
+
+            if (Input.GetButton("break"))
+                {
+            RelativeSpeed -= 1000.0f * Time.deltaTime; //break
+                }
+
+            PuissanceUtilMoteur = PuissanceMaxMoteur * throttle;
+        Vector3 ForceTotal = (transform.forward * PuissanceUtilMoteur * 100.0f) + (transform.up * Portance);
+        Vector3 TorqueTotal = (transform.forward * turn) + (transform.right * pitch);
+
+        rb.AddForce(ForceTotal * Time.deltaTime);
+        rb.AddTorque(TorqueTotal * Time.deltaTime);
+        
+    }
+    
+    private static float OffsetCamSlow()
+    {
+        return Random.Range(-2, 2);
+    }
+
+    private static float OffsetCamSpeed()
+    {
+        return Random.Range(-0.001f, 0.001f);
+    }
+
+    void DebugDrawColoredRectangle(Vector3 position, float size, Color color)
+    {
+        Debug.DrawLine(position, new Vector3(position.x + size, position.y, position.z), color);
+        Debug.DrawLine(position, new Vector3(position.x, position.y+(-size), position.z), color);
+        Debug.DrawLine(new Vector3(position.x, position.y + (-size), position.z), new Vector3(position.x + size, position.y + (-size), position.z), color);
+        Debug.DrawLine(new Vector3(position.x + size, position.y + (-size), position.z), new Vector3(position.x + size, position.y, position.z), color);
+    }
+} //AJOUTER AERODYN Au dessus d'une certaine vitesse "trait blanc" effet de collision, 
+
+
+//collider + matière => retirer systeme point
+
+//systeme d'altitude/décrochage
+//Faire un nouvel avion
+//MAPPPP
