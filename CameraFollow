@@ -7,6 +7,8 @@ public class CameraFollow : MonoBehaviour
     [SerializeField]
     private GameObject plane;
     private Vector3 zero = Vector3.zero;
+    [SerializeField]
+    private GameObject RepereLoc;
 
     public float smoothSpeed;
     public float smoothSpeedRot;
@@ -19,23 +21,25 @@ public class CameraFollow : MonoBehaviour
         smoothSpeed = 0.001f;
         smoothSpeedRot = 10.0f;
         Vector3 finalPos = plane.transform.position;
-        finalPos.y += 2;
-        finalPos.z -= 10;
-        finalPos.x -= 3;
+        Vector3 horizontalLocal = transform.forward;
+        Vector3 verticalLocal = transform.up;
+        Vector3 rightLocal = RepereLoc.transform.right;
+        finalPos += -100 * horizontalLocal +36* verticalLocal;//+ (0)*rightLocal;
+
         Vector3 smoothPos;
         Zmax= Mathf.Clamp(Zmax, finalPos.z - 17, finalPos.z);
             
         smoothPos = Vector3.SmoothDamp(transform.position, finalPos,ref zero, smoothSpeed);
         smoothPos.z = Zmax;
         transform.position = smoothPos;
-
        
+
         Quaternion finalRot = plane.transform.rotation;
         Quaternion DecalFinalRot = finalRot;
 
-       DecalFinalRot *= Quaternion.Euler(Vector3.right * 20);
-
-        Quaternion smoothRot = Quaternion.Lerp(transform.rotation, finalRot, Time.deltaTime*smoothSpeedRot);
+       DecalFinalRot *= Quaternion.Euler(Vector3.right * (20));
+        finalRot = DecalFinalRot;
+        Quaternion smoothRot = Quaternion.Lerp(transform.rotation, DecalFinalRot, Time.deltaTime*smoothSpeedRot);
         transform.rotation = smoothRot;
        
 
