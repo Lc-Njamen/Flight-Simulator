@@ -1,0 +1,25 @@
+using UnityEngine;
+
+namespace TinForge.AircraftDemo
+{
+	public class Rotate : MonoBehaviour
+	{
+        
+        public Vector3 direction;
+		public float rate;
+        
+         void Start()
+        {
+            
+        }
+
+        void Update()
+		{
+
+            float NewThrottle = GameObject.Find("Plane").GetComponent<Planepilot>().valuethrottle();
+            direction = transform.forward;
+			transform.Rotate(direction.normalized * NewThrottle* Time.deltaTime*100);
+            
+        }
+	}
+}
