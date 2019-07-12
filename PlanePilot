@@ -6,7 +6,7 @@ using UnityEngine.UI;
 //  /!\     /!\   /!\    /!\  /!\    /!\UNITÉ EN SI/!\   /!\     /!\      /!\    /!\    /!\
 // On suppose la vitesse du vent nulle
 //Aéronef supposé indéformable
-//Caractéristique Boeing C-17
+//Caractéristique lockheed AC-130
 
 public class Planepilot : MonoBehaviour
 {
@@ -14,6 +14,8 @@ public class Planepilot : MonoBehaviour
     private GameObject MainCamera;
     [SerializeField]
     private GameObject RepereLoc;
+    public Text TxtVitesse;
+    public GameObject Rotors;
 
     public float OffsetX;
     public float OffsetY;
@@ -28,13 +30,13 @@ public class Planepilot : MonoBehaviour
     public float throttle; //de 0 a 10 utilisation de la puissance des moteurs
     public float Trainee;
     public float MassVolAir = 1.225f; // Varie selon l altitude
-    public float SurfaceAlaire = 353f; // Surface des ailes en m2
+    public float SurfaceAlaire = 162.2f; // Surface des ailes en m2
     public float IncidenceAiles; // angle de l aile par rapport au vent relatif
     public float RelativeSpeed;
     public float turn;
     public float pitch = 0;
     public float LimitSpeed = 258.3f; //930 km/h vitesse du son
-    static float squaresize = 2.0f;
+    static float squaresize = 1.0f;
     public float CoeffPortAiles =0.3f;
     public float CoeffTrainee = 0.013f;
     public Vector3 speedV3;
@@ -45,16 +47,19 @@ public class Planepilot : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.mass = 122000f;
+        rb.mass = 80000f;
         
-        //rb.angularDrag = 2.0f;
+        
       
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
+        Vector3 VitesseSol = Vector3.Project(rb.velocity, RepereLoc.transform.forward);
 
+        TxtVitesse.text = "Vitesse Réelle (km/h) = " + (int)Speed * 3.6 + "\n" + "Vitesse Sol (km/h) = " + (int)VitesseSol.magnitude * 3.6
+        + "\n" + "Hauteur (m) = " + (int) transform.position.y + "\n" + "Angle d'incidence (degré) = " + (int) IncidenceAiles;
         Speed = rb.velocity.magnitude;
         IncidenceAiles = 360.0f-Mathf.Abs(transform.rotation.eulerAngles.x) ;
         speedV3 = rb.velocity ;
@@ -120,20 +125,32 @@ public class Planepilot : MonoBehaviour
 
         float speed = speedV3.magnitude ; // 1m/s = 3.6 km / h
         speedV3 = rb.velocity;
+        float XRayPos = transform.position.x + 25;
+        float YRayPos = transform.position.y + 25;
+        float ZRayPos = transform.position.z + 25;
+        Vector3 RayPos;
+        RayPos.x = XRayPos;
+        RayPos.y = YRayPos;
+        RayPos.z = ZRayPos;
+        Debug.DrawRay(RayPos, speedV3 / 10.0f, Color.blue);         // Debug/trace une ligne bleue pour représenter speedV3 //
+        Debug.DrawRay(RayPos, RelativeSpeedV3 / 10.0f, Color.red);
+        Debug.DrawRay(RayPos, VitesseSol / 10.0f, Color.green);
 
-        Debug.DrawRay(transform.position, speedV3 / 50.0f, Color.blue);         // Debug/trace une ligne bleue pour représenter speedV3 //
-        Debug.DrawRay(transform.position, RelativeSpeedV3 / 50.0f, Color.red);
-     
         if (RelativeSpeedV3.magnitude > LimitSpeed) //Limit RelativSpeed
         {
             RelativeSpeedV3 = Vector3.ClampMagnitude(RelativeSpeedV3, LimitSpeed);
         }
         RelativeSpeed = RelativeSpeedV3.magnitude;
+        if (speedV3.magnitude > LimitSpeed) //Limit RelativSpeed
+        {
+            speedV3 = Vector3.ClampMagnitude(speedV3, LimitSpeed);
+        }
+        speed = speedV3.magnitude;
 
-        
-        
 
-        
+
+
+
         if (rb.velocity.magnitude > LimitSpeed) //Limit RelativSpeed
         {
             rb.velocity = Vector3.ClampMagnitude(rb.velocity, LimitSpeed);
@@ -142,9 +159,7 @@ public class Planepilot : MonoBehaviour
         float cursorPosY = transform.position.y - 3.24f;
         float cursorPosX = transform.position.x -4.0f;
         Vector3 cursorPos = transform.position;
-        cursorPos.z = cursorPosZ;
-        cursorPos.y = cursorPosY;
-        cursorPos.x = cursorPosX;
+        cursorPos += transform.forward * 50;
         if (RelativeSpeed>200)
         {
             this.DebugDrawColoredRectangle(cursorPos, squaresize, Color.white);
@@ -153,10 +168,10 @@ public class Planepilot : MonoBehaviour
 
         float SpeedSpeed = Speed * Speed;
 
-        turn = -Input.GetAxis("Horizontal") * 0.5f * Speed * Speed;
+        turn = -Input.GetAxis("Horizontal") * 0.000005f * Speed * Speed;
         rb.AddTorque(transform.forward * turn);
 
-        pitch = Input.GetAxis("Vertical") * 0.5f * Speed*Speed;
+        pitch = Input.GetAxis("Vertical") * 0.0000005f * Speed*Speed;
         rb.AddTorque(transform.right * pitch);
 
         //Force de Portance // vers le haut
@@ -201,7 +216,8 @@ public class Planepilot : MonoBehaviour
             RelativeSpeed -= 1000.0f * Time.deltaTime; //break
                 }
 
-            PuissanceUtilMoteur = PuissanceMaxMoteur * throttle;
+       
+        PuissanceUtilMoteur = PuissanceMaxMoteur * throttle;
         Vector3 ForceTotal = (transform.forward * PuissanceUtilMoteur * 100.0f) + (transform.up * Portance);
         Vector3 TorqueTotal = (transform.forward * turn) + (transform.right * pitch);
 
@@ -227,11 +243,20 @@ public class Planepilot : MonoBehaviour
         Debug.DrawLine(new Vector3(position.x, position.y + (-size), position.z), new Vector3(position.x + size, position.y + (-size), position.z), color);
         Debug.DrawLine(new Vector3(position.x + size, position.y + (-size), position.z), new Vector3(position.x + size, position.y, position.z), color);
     }
+
+    public float valuethrottle()
+    {
+        return throttle;
+    }
+    public float valueIncidenceAiles()
+    {
+        return IncidenceAiles;
+    }
 } //AJOUTER AERODYN Au dessus d'une certaine vitesse "trait blanc" effet de collision, 
 
 
-//collider + matière => retirer systeme point
+//+ matière => retirer systeme point
 
-//systeme d'altitude/décrochage
-//Faire un nouvel avion
+
+
 //MAPPPP
