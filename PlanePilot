@@ -35,6 +35,7 @@ public class Planepilot : MonoBehaviour
     public float RelativeSpeed;
     public float turn;
     public float pitch = 0;
+    public float yaw = 0;
     public float LimitSpeed = 258.3f; //930 km/h vitesse du son
     static float squaresize = 1.0f;
     public float CoeffPortAiles =0.3f;
@@ -167,13 +168,15 @@ public class Planepilot : MonoBehaviour
         }
 
         float SpeedSpeed = Speed * Speed;
-
+        Debug.Log(SpeedSpeed);
         turn = -Input.GetAxis("Horizontal") * 0.000005f * Speed * Speed;
         rb.AddTorque(transform.forward * turn);
 
         pitch = Input.GetAxis("Vertical") * 0.0000005f * Speed*Speed;
         rb.AddTorque(transform.right * pitch);
 
+        yaw=Input.GetAxis("Yaw") * 0.0000005f * Speed * Speed;
+        rb.AddTorque(transform.up * yaw);
         //Force de Portance // vers le haut
 
         Portance = 0.5f * MassVolAir * CoeffPortAiles * SpeedSpeed * SurfaceAlaire; 
@@ -205,20 +208,25 @@ public class Planepilot : MonoBehaviour
                 throttle = throttle + 2.0f*Time.deltaTime;
             }
                                                     //maitrise de l'accélération    manette des gazs 
-            if (Input.GetButton("throttle-"))
+        if (Input.GetButton("throttle-"))
             {
                 throttle = throttle - 2.0f * Time.deltaTime;
             }
+
         throttle = Mathf.Clamp(throttle, 0.0f, 100.0f);
+        Vector3 ForceTotal;
 
-            if (Input.GetButton("break"))
-                {
-            RelativeSpeed -= 1000.0f * Time.deltaTime; //break
-                }
-
-       
         PuissanceUtilMoteur = PuissanceMaxMoteur * throttle;
-        Vector3 ForceTotal = (transform.forward * PuissanceUtilMoteur * 100.0f) + (transform.up * Portance);
+        ForceTotal = (transform.forward * PuissanceUtilMoteur * 100.0f) + (transform.up * Portance);
+        if (Input.GetButton("break"))
+                {
+                    //Speed -= 7000.0f * Time.deltaTime; //break
+            ForceTotal = (transform.forward * PuissanceUtilMoteur * 100.0f) + (transform.up * Portance) + (transform.forward * -100000000f);
+            }
+
+      
+
+        
         Vector3 TorqueTotal = (transform.forward * turn) + (transform.right * pitch);
 
         rb.AddForce(ForceTotal * Time.deltaTime);
