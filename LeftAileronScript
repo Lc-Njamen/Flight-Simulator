@@ -1,0 +1,55 @@
+using UnityEngine;
+
+
+namespace TinForge.AircraftDemo
+{
+    public class LeftAileronScript : MonoBehaviour
+    {
+        [SerializeField]
+        private GameObject plane;
+        public Vector3 direction;
+        public float smoothSpeedRot = 50f;
+        public float rate;
+        public float SmoothSpeedrot = 50f;
+        public float Rate;
+
+
+
+        void Start()
+        {
+
+        }
+
+        void FixedUpdate()
+        {
+            rate = Input.GetAxis("Horizontal");
+            if (rate != 0)
+            //float IncidenceAiles = GameObject.Find("Plane").GetComponent<Planepilot>().valueIncidenceAiles();
+            //direction = transform.right;
+            {
+                transform.rotation = plane.transform.rotation;
+                Quaternion finalRot = plane.transform.rotation;
+                Quaternion DecalFinalRot = finalRot;
+                DecalFinalRot *= Quaternion.Euler(Vector3.right * rate * -25);
+                //Debug.Log(DecalFinalRot);
+                Quaternion smoothRot = Quaternion.Lerp(transform.rotation, DecalFinalRot, Time.deltaTime * smoothSpeedRot * 100);
+                transform.rotation = smoothRot;
+            }
+
+
+            Rate = Input.GetAxis("Vertical");
+            if (Rate != 0)
+            //float IncidenceAiles  = GameObject.Find("Plane").GetComponent<Planepilot>().valueIncidenceAiles();
+            {    //direction = transform.right;
+                transform.rotation = plane.transform.rotation;
+                Quaternion FinalRot = plane.transform.rotation;
+                Quaternion DecalFinalrot = FinalRot;
+                DecalFinalrot *= Quaternion.Euler(Vector3.right * Rate * 25);
+                Quaternion SmoothRot = Quaternion.Lerp(transform.rotation, DecalFinalrot, Time.deltaTime * SmoothSpeedrot);
+                transform.rotation = SmoothRot;
+                //transform.Rotate(direction.normalized * NewThrottle * Time.deltaTime * 100);
+            }
+        }
+    }
+
+}
