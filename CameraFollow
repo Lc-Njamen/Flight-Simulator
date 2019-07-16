@@ -24,7 +24,7 @@ public class CameraFollow : MonoBehaviour
         Vector3 horizontalLocal = transform.forward;
         Vector3 verticalLocal = transform.up;
         Vector3 rightLocal = RepereLoc.transform.right;
-        finalPos += -100 * horizontalLocal +36* verticalLocal;//+ (0)*rightLocal;
+        finalPos += -200 * horizontalLocal +72* verticalLocal;//+ (0)*rightLocal;
 
         Vector3 smoothPos;
         Zmax= Mathf.Clamp(Zmax, finalPos.z - 17, finalPos.z);
