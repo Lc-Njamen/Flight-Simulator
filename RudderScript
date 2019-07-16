@@ -1,0 +1,36 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class RudderScript : MonoBehaviour
+{
+    public float rate;
+    [SerializeField]
+    private GameObject plane;
+    public Vector3 direction;
+    public float smoothSpeedRot = 50f;
+
+    void Start()
+    {
+        
+    }
+
+    // Update is called once per frame
+    void FixedUpdate()
+    {
+        rate = Input.GetAxis("Yaw");
+        if (rate != 0)
+        //float IncidenceAiles = GameObject.Find("Plane").GetComponent<Planepilot>().valueIncidenceAiles();
+        //direction = transform.right;
+        {
+            transform.rotation = plane.transform.rotation;
+            Quaternion finalRot = plane.transform.rotation;
+            Quaternion DecalFinalRot = finalRot;
+            DecalFinalRot *= Quaternion.Euler(Vector3.up * rate * -25);
+            //Debug.Log(DecalFinalRot);
+            Quaternion smoothRot = Quaternion.Lerp(transform.rotation, DecalFinalRot, Time.deltaTime * smoothSpeedRot * 100);
+            transform.rotation = smoothRot;
+        }
+
+    }
+}
